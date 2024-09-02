@@ -1,0 +1,57 @@
+name: Build
+
+on:
+    pull_request:
+
+jobs:
+    Build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup C# .NET
+              uses: actions/setup-dotnet@v3
+              with:
+                dotnet-version: '8.0.x'
+
+            - name: Restore ClientConsole dependencies
+              working-directory: ./ClientConsole
+              run: dotnet restore
+
+            - name: Build ClientConsole
+              working-directory: ./ClientConsole
+              run: dotnet build
+
+            - name: Restore Infrastructure dependencies
+              working-directory: ./Infrastructure/src/Infrastructure
+              run: dotnet restore
+
+            - name: Build Infrastrucure
+              working-directory: ./Infrastructure
+              run: dotnet build src
+
+            - name: Restore Server dependencies
+              working-directory: ./Server
+              run: dotnet restore
+
+            - name: Build Server
+              working-directory: ./Server
+              run: dotnet build
+
+            - name: Restore Shared dependencies
+              working-directory: ./Shared
+              run: dotnet restore
+
+            - name: Build Shared
+              working-directory: ./Shared
+              run: dotnet build
+
+            - name: Restore WebClient dependencies
+              working-directory: ./WebClient
+              run: dotnet restore
+
+            - name: Build WebClient
+              working-directory: ./WebClient
+              run: dotnet build

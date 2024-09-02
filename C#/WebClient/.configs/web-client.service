@@ -1,0 +1,12 @@
+[Unit]
+Description=C# .NET WebClient
+
+[Service]
+WorkingDirectory=/home/ec2-user/WebClient/bin/Release/net8.0/publish
+ExecStart=/usr/bin/dotnet WebClient.dll
+Restart=always
+RestartSec=30 # Restart service after 30 seconds if dotnet service crashes
+Environment=ASPNETCORE_ENVIRONMENT=Production
+
+[Install]
+WantedBy=multi-user.target

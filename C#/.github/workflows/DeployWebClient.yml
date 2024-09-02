@@ -1,0 +1,64 @@
+name: Deploy Web Client to EC2
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'WebClient/**'
+      - '.github/workflows/DeployWebClient.yml'
+
+
+jobs: 
+    Deploy:
+        runs-on: ubuntu-latest
+
+        steps: 
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup C# .NET
+              uses: actions/setup-dotnet@v4
+              with:
+                dotnet-version: "8.0.x"
+
+            - name: Build Web Client
+              working-directory: ./WebClient
+              run: dotnet publish --configuration Release
+
+            - name: Create Deployment Archive
+              working-directory: ./WebClient
+              run: tar -czvf DeploymentArchive.tar.gz bin/Release/net8.0/publish/
+
+            - name: Deploy to EC2
+              uses: appleboy/scp-action@v0.1.7
+              with:
+                host: ${{ secrets.WEB_EC2_INSTANCE_HOST }}
+                username: ${{  secrets.EC2_USERNAME }}
+                key: ${{ secrets.EC2_PRIVATE_KEY }}
+                source: "./WebClient/DeploymentArchive.tar.gz"
+                target: ~/
+            
+            - name: Run Live
+              uses: appleboy/ssh-action@v1.0.3
+              with:
+                host: ${{ secrets.WEB_EC2_INSTANCE_HOST }}
+                username: ${{  secrets.EC2_USERNAME }}
+                key: ${{ secrets.EC2_PRIVATE_KEY }}
+                script: |
+                  # install C# .NET
+                  sudo yum update -y
+                  sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+                  sudo wget -O /etc/yum.repos.d/microsoft-prod.repo https://packages.microsoft.com/config/fedora/37/prod.repo
+                  sudo dnf install -y dotnet-sdk-8.0
+
+                  sudo yum install nginx
+
+                  sudo systemctl stop WebClient.service
+
+                  tar -xzvf WebClient/DeploymentArchive.tar.gz -C ~/WebClient/
+                  rm WebClient/DeploymentArchive.tar.gz
+
+                  sudo systemctl enable WebClient.service
+                  sudo systemctl daemon-reload
+                  sudo systemctl start WebClient.service
